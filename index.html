@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0a0a0c;
+            color: #e0e0e0;
+            height: 100%;
+            width: 100%;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: linear-gradient(to bottom right, #0f172a, #1e293b);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-bottom: 1px solid #334155;
+        }
+
+        .header h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            cursor: pointer;
+            padding: 0.5rem;
+            font-size: 1.25rem;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn-icon:hover {
+            background-color: #1e293b;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .icon-large {
+            font-size: 2.5rem;
+        }
+
+        .title {
+            font-size: 1.875rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            color: #9ca3af;
+        }
+
+        .button {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(to right, #2563eb, #1d4ed8);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(to right, #1d4ed8, #1e40af);
+        }
+
+        .btn-secondary {
+            background-color: #1e293b;
+            color: #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background-color: #334155;
+        }
+
+        .btn-danger {
+            background-color: #dc2626;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-group label {
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        input[type="text"], input[type="file"] {
+            padding: 0.5rem 0.75rem;
+            background-color: #1e293b;
+            border: 1px solid #475569;
+            color: white;
+            border-radius: 0.375rem;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .button-group .button {
+            flex: 1;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            max-height: 16rem;
+            overflow-y: auto;
+        }
+
+        .image-item {
+            position: relative;
+            aspect-ratio: 4/3;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-remove {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            background-color: #dc2626;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #1e293b;
+            border-radius: 0.5rem;
+            width: 100%;
+            max-width: 28rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-bottom: 1px solid #334155;
+        }
+
+        .modal-body {
+            padding: 1rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        #cameraStream {
+            width: 100%;
+            border-radius: 0.375rem;
+        }
+
+        .document-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .document-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background-color: #1e293b;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s;
+        }
+
+        .document-item:hover {
+            background-color: #334155;
+        }
+
+        .doc-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.375rem;
+            background-color: rgba(37, 99, 235, 0.15);
+            font-size: 1.25rem;
+        }
+
+        .doc-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .doc-name {
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .doc-meta {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        .doc-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-action {
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s;
+            font-size: 1rem;
+        }
+
+        .btn-action:hover {
+            background-color: #334155;
+        }
+
+        .btn-action.danger:hover {
+            background-color: rgba(220, 38, 38, 0.2);
+            color: #dc2626;
+        }
+
+        .info-box {
+            background-color: #1e293b;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .info-title {
+            color: #3b82f6;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .info-text {
+            color: #9ca3af;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        .footer {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .empty-state {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        let currentPage = 'home';
+        let capturedImages = [];
+        let documents = JSON.parse(localStorage.getItem('documents') || '[]');
+        let docName = '';
+        let currentStream = null;
+
+        const app = document.getElementById('app');
+
+        function render() {
+            if (currentPage === 'home') renderHome();
+            else if (currentPage === 'scanner') renderScanner();
+            else if (currentPage === 'gallery') renderGallery();
+            else if (currentPage === 'settings') renderSettings();
+        }
+
+        function renderHome() {
+            app.innerHTML = `
+                <div class="header">
+                    <div></div>
+                    <button class="btn-icon" onclick="goPage('settings')">⚙️</button>
+                </div>
+                <div class="content">
+                    <div class="center" style="flex: 1;">
+                        <div class="icon-large">📄</div>
+                        <div class="title">Document Scanner</div>
+                        <div class="subtitle">Scan and send to banks</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <button class="button btn-primary" onclick="goPage('scanner')">📸 Scan Document</button>
+                        <button class="button btn-secondary" onclick="goPage('gallery')">📁 Document Gallery</button>
+                    </div>
+                </div>
+                <div class="footer">By Nguyễn Trung Tín</div>
+            `;
+        }
+
+        function renderScanner() {
+            app.innerHTML = `
+                <div class="header">
+                    <h2>Scan Document</h2>
+                    <button class="btn-icon" onclick="goPage('home')">✕</button>
+                </div>
+                <div class="content">
+                    ${capturedImages.length === 0 ? `
+                        <div class="center" style="flex: 1; border: 2px dashed #475569; border-radius: 0.5rem; margin: 1rem 0;">
+                            <div class="icon-large">📸</div>
+                            <div style="font-weight: 600;">No images captured</div>
+                            <div class="subtitle">Scan documents or upload images</div>
+                        </div>
+                    ` : `
+                        <div class="subtitle">${capturedImages.length} page(s) captured</div>
+                        <div class="image-grid">
+                            ${capturedImages.map((img, i) => `
+                                <div class="image-item">
+                                    <img src="${img}" alt="Captured ${i + 1}">
+                                    <button class="image-remove" onclick="removeImage(${i})">✕</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                    
+                    <div class="input-group">
+                        <label>Document Name</label>
+                        <input type="text" id="docName" placeholder="e.g., CCCD, Passport" onchange="docName = this.value">
+                    </div>
+
+                    <div class="button-group">
+                        <button class="button btn-primary" onclick="startCamera()">📷 Capture</button>
+                        <button class="button btn-secondary" onclick="document.getElementById('fileInput').click()">📁 Upload</button>
+                    </div>
+                    <input id="fileInput" type="file" accept="image/*" multiple onchange="uploadFiles(event)">
+
+                    ${capturedImages.length > 0 ? `
+                        <button class="button" style="background-color: #16a34a; color: white;" onclick="generatePDF()">💾 Save Document</button>
+                    ` : ''}
+                </div>
+
+                <div id="cameraModal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Camera</h3>
+                            <button class="btn-icon" onclick="stopCamera()">✕</button>
+                        </div>
+                        <div class="modal-body">
+                            <div style="background: black; border-radius: 0.375rem; overflow: hidden;">
+                                <video id="cameraStream" autoplay playsinline style="width: 100%; display: block;"></video>
+                            </div>
+                            <canvas id="cameraCanvas" style="display: none;"></canvas>
+                        </div>
+                        <div style="padding: 1rem; display: flex; gap: 0.5rem; border-top: 1px solid #334155;">
+                            <button class="button btn-primary" onclick="captureFrame()">📷 Capture</button>
+                            <button class="button btn-secondary" onclick="stopCamera()">Done</button>
+                        </div>
+                        <div style="padding: 0 1rem 1rem; text-align: center; font-size: 0.75rem; color: #9ca3af;">${capturedImages.length} page(s)</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderGallery() {
+            app.innerHTML = `
+                <div class="header">
+                    <h2>Document Gallery</h2>
+                    <button class="btn-icon" onclick="goPage('home')">✕</button>
+                </div>
+                <div class="content">
+                    ${documents.length === 0 ? `
+                        <div class="empty-state">
+                            <div class="empty-icon">📄</div>
+                            <div style="font-weight: 600;">No documents yet</div>
+                            <div class="subtitle">Scan some documents to get started</div>
+                        </div>
+                    ` : `
+                        <div class="document-list">
+                            ${documents.map((doc, i) => `
+                                <div class="document-item">
+                                    <div class="doc-icon">📄</div>
+                                    <div class="doc-info">
+                                        <div class="doc-name">${doc.name}</div>
+                                        <div class="doc-meta">${doc.imageCount} page(s)</div>
+                                    </div>
+                                    <div class="doc-actions">
+                                        <button class="btn-action" onclick="previewDoc(${i})" title="Preview">👁️</button>
+                                        <button class="btn-action" onclick="downloadDoc(${i})" title="Download">⬇️</button>
+                                        <button class="btn-action danger" onclick="deleteDoc(${i})" title="Delete">🗑️</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+
+                <div id="previewModal" class="modal">
+                    <div class="modal-content" style="max-width: 48rem; max-height: 80vh;">
+                        <div class="modal-header">
+                            <h3 id="previewTitle"></h3>
+                            <button class="btn-icon" onclick="closeModal()">✕</button>
+                        </div>
+                        <div class="modal-body">
+                            <iframe id="previewFrame" src="" style="width: 100%; height: 100%; border: none; border-radius: 0.375rem; background: white;"></iframe>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSettings() {
+            app.innerHTML = `
+                <div class="header">
+                    <h2>Settings</h2>
+                    <button class="btn-icon" onclick="goPage('home')">✕</button>
+                </div>
+                <div class="content">
+                    <div class="info-box">
+                        <div class="info-title">About</div>
+                        <div class="info-text">
+                            Document Scanner v1.0<br><br>
+                            Scan ID cards and documents, convert to PDF, send to banks.<br><br>
+                            <span style="color: #6b7280;">Built by Nguyễn Trung Tín</span>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <div class="info-title">Clear All Documents</div>
+                        <div class="info-text" style="margin-bottom: 1rem;">${documents.length} document(s) stored</div>
+                        <button class="button btn-danger" onclick="clearAll()" ${documents.length === 0 ? 'style="opacity: 0.5; cursor: not-allowed;" disabled' : ''}>Clear All</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.goPage = (page) => {
+            currentPage = page;
+            render();
+        };
+
+        window.startCamera = async () => {
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1440 } }
+                });
+                const video = document.getElementById('cameraStream');
+                if (video) {
+                    video.srcObject = currentStream;
+                    document.getElementById('cameraModal').classList.add('active');
+                }
+            } catch (e) {
+                alert('Camera access denied');
+            }
+        };
+
+        window.stopCamera = () => {
+            if (currentStream) {
+                currentStream.getTracks().forEach(t => t.stop());
+                currentStream = null;
+            }
+            const modal = document.getElementById('cameraModal');
+            if (modal) modal.classList.remove('active');
+        };
+
+        window.captureFrame = () => {
+            const video = document.getElementById('cameraStream');
+            const canvas = document.getElementById('cameraCanvas');
+            if (video && canvas && video.srcObject) {
+                const ctx = canvas.getContext('2d');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
+                capturedImages.push(canvas.toDataURL('image/jpeg', 0.95));
+                renderScanner();
+            }
+        };
+
+        window.removeImage = (i) => {
+            capturedImages.splice(i, 1);
+            renderScanner();
+        };
+
+        window.uploadFiles = (e) => {
+            const files = e.target.files;
+            if (files) {
+                Array.from(files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        capturedImages.push(ev.target.result);
+                        renderScanner();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+            e.target.value = '';
+        };
+
+        window.generatePDF = async () => {
+            const name = document.getElementById('docName')?.value || 'Document';
+            if (!name || capturedImages.length === 0) {
+                alert('Enter document name and capture images');
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+            script.onload = () => {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                
+                let processed = 0;
+                capturedImages.forEach((img, idx) => {
+                    const imgObj = new Image();
+                    imgObj.src = img;
+                    imgObj.onload = () => {
+                        if (idx > 0) pdf.addPage();
+                        const w = 210;
+                        const h = (imgObj.height * w) / imgObj.width;
+                        const maxH = 297;
+                        const finalH = h > maxH ? maxH - 10 : h;
+                        const y = (297 - finalH) / 2;
+                        pdf.addImage(img, 'JPEG', 0, Math.max(0, y), w, finalH);
+                        
+                        processed++;
+                        if (processed === capturedImages.length) {
+                            const pdfData = pdf.output('dataurlstring');
+                            documents.push({
+                                id: Date.now(),
+                                name: name,
+                                pdfData: pdfData,
+                                imageCount: capturedImages.length,
+                                createdAt: new Date().toISOString()
+                            });
+                            localStorage.setItem('documents', JSON.stringify(documents));
+                            capturedImages = [];
+                            docName = '';
+                            alert('Document saved!');
+                            goPage('gallery');
+                        }
+                    };
+                });
+            };
+            document.head.appendChild(script);
+        };
+
+        window.previewDoc = (i) => {
+            const doc = documents[i];
+            document.getElementById('previewTitle').textContent = doc.name;
+            document.getElementById('previewFrame').src = doc.pdfData;
+            document.getElementById('previewModal').classList.add('active');
+        };
+
+        window.closeModal = () => {
+            document.getElementById('previewModal').classList.remove('active');
+        };
+
+        window.downloadDoc = (i) => {
+            const doc = documents[i];
+            const link = document.createElement('a');
+            link.href = doc.pdfData;
+            link.download = `${doc.name}.pdf`;
+            link.click();
+        };
+
+        window.deleteDoc = (i) => {
+            if (confirm('Delete this document?')) {
+                documents.splice(i, 1);
+                localStorage.setItem('documents', JSON.stringify(documents));
+                renderGallery();
+            }
+        };
+
+        window.clearAll = () => {
+            if (confirm(`Delete all ${documents.length} documents?`)) {
+                documents = [];
+                localStorage.setItem('documents', JSON.stringify(documents));
+                renderSettings();
+            }
+        };
+
+        render();
+    </script>
+</body>
+</html>
