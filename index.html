@@ -436,7 +436,14 @@
         let currentPage = 'home';
         let capturedImages = [];
         let ocrTexts = [];
-        let documents = JSON.parse(localStorage.getItem('documents') || '[]');
+        let documents = [];
+        try {
+            documents = JSON.parse(localStorage.getItem('documents') || '[]');
+            if (!Array.isArray(documents)) documents = [];
+        } catch (e) {
+            console.log('Could not read saved documents:', e);
+            documents = [];
+        }
         let docName = '';
         let currentStream = null;
         let isProcessing = false;
@@ -589,13 +596,17 @@
                 </div>
 
                 <div id="previewModal" class="modal">
-                    <div class="modal-content" style="max-width: 48rem; max-height: 80vh;">
+                    <div class="modal-content" style="max-width: 48rem; max-height: 85vh;">
                         <div class="modal-header">
                             <h3 id="previewTitle"></h3>
                             <button class="btn-icon" onclick="closeModal()">✕</button>
                         </div>
-                        <div class="modal-body">
-                            <iframe id="previewFrame" src="" style="width: 100%; height: 100%; border: none; border-radius: 0.375rem; background: white;"></iframe>
+                        <div class="modal-body" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <iframe id="previewFrame" src="" style="width: 100%; height: 250px; border: none; border-radius: 0.375rem; background: white;"></iframe>
+                            <div id="previewOcrBox" class="ocr-status" style="display: none;">
+                                <strong>📖 Văn bản đã đọc được:</strong>
+                                <div id="previewOcrText" class="ocr-text"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -772,22 +783,47 @@
             isProcessing = true;
             renderScanner();
             try {
-                const { data: { text } } = await Tesseract.recognize(imageData, 'eng', {
+                const { data: { text } } = await Tesseract.recognize(imageData, 'vie+eng', {
                     logger: m => console.log('OCR:', m)
                 });
                 ocrTexts[index] = text || '';
             } catch (e) {
                 console.error('OCR Error:', e);
                 ocrTexts[index] = '';
+                alert('Không đọc được chữ trong ảnh này (ảnh vẫn được giữ lại). Bạn có thể tiếp tục chụp hoặc lưu tài liệu.');
             }
             isProcessing = false;
             renderScanner();
         }
 
+        function loadImage(src) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('Không đọc được ảnh đã chụp'));
+                img.src = src;
+            });
+        }
+
+        function saveDocumentsToStorage() {
+            try {
+                localStorage.setItem('documents', JSON.stringify(documents));
+                return true;
+            } catch (e) {
+                console.log('localStorage save error:', e);
+                if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
+                    alert('Không đủ dung lượng lưu trên máy.\n\nVui lòng vào Gallery xóa bớt tài liệu cũ rồi thử lưu lại.');
+                } else {
+                    alert('Lỗi khi lưu tài liệu vào máy: ' + (e.message || e.name));
+                }
+                return false;
+            }
+        }
+
         window.generatePDF = async () => {
             const name = document.getElementById('docName')?.value || 'Document';
             if (!name || capturedImages.length === 0) {
-                alert('Enter document name and capture images');
+                alert('Vui lòng nhập tên tài liệu và chụp ít nhất 1 ảnh');
                 return;
             }
 
@@ -797,60 +833,60 @@
             try {
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-                
-                let processed = 0;
-                capturedImages.forEach((img, idx) => {
-                    const imgObj = new Image();
-                    imgObj.src = img;
-                    imgObj.onload = () => {
-                        if (idx > 0) pdf.addPage();
-                        const w = 210;
-                        const h = (imgObj.height * w) / imgObj.width;
-                        const maxH = 297;
-                        const finalH = h > maxH ? maxH - 10 : h;
-                        const y = (297 - finalH) / 2;
-                        pdf.addImage(img, 'JPEG', 0, Math.max(0, y), w, finalH);
-                        
-                        processed++;
-                        if (processed === capturedImages.length) {
-                            pdf.addPage();
-                            pdf.setFontSize(14);
-                            pdf.text('Extracted Text', 15, 15);
-                            pdf.setFontSize(10);
-                            let yPos = 30;
-                            ocrTexts.forEach((text, idx) => {
-                                pdf.text(`Page ${idx + 1}:`, 15, yPos);
-                                yPos += 5;
-                                const splitText = pdf.splitTextToSize(text || '(no text detected)', 180);
-                                pdf.text(splitText, 15, yPos);
-                                yPos += splitText.length * 5 + 10;
-                                if (yPos > 280) {
-                                    pdf.addPage();
-                                    yPos = 15;
-                                }
-                            });
 
-                            const pdfData = pdf.output('dataurlstring');
-                            documents.push({
-                                id: Date.now(),
-                                name: name,
-                                pdfData: pdfData,
-                                imageCount: capturedImages.length,
-                                text: ocrTexts.join('\n\n---\n\n'),
-                                createdAt: new Date().toISOString()
-                            });
-                            localStorage.setItem('documents', JSON.stringify(documents));
-                            capturedImages = [];
-                            ocrTexts = [];
-                            docName = '';
-                            isProcessing = false;
-                            alert('Document saved with OCR!');
-                            goPage('gallery');
-                        }
-                    };
-                });
+                // Process pages strictly in order, waiting for each image to
+                // fully decode before moving to the next - avoids pages coming
+                // out shuffled when images load at different speeds.
+                for (let idx = 0; idx < capturedImages.length; idx++) {
+                    const imgData = capturedImages[idx];
+                    const imgObj = await loadImage(imgData);
+
+                    if (idx > 0) pdf.addPage();
+                    const w = 210;
+                    const h = (imgObj.height * w) / imgObj.width;
+                    const maxH = 297;
+                    const finalH = h > maxH ? maxH - 10 : h;
+                    const y = (297 - finalH) / 2;
+                    pdf.addImage(imgData, 'JPEG', 0, Math.max(0, y), w, finalH);
+                }
+
+                // Note: OCR text is intentionally NOT written into the PDF itself.
+                // jsPDF's built-in fonts don't support Vietnamese diacritics, so
+                // Vietnamese text would render as broken characters/boxes there.
+                // The extracted text is kept as data (doc.text) and shown inside
+                // the app instead, where it displays correctly.
+
+                const pdfData = pdf.output('dataurlstring');
+                const newDoc = {
+                    id: Date.now(),
+                    name: name,
+                    pdfData: pdfData,
+                    imageCount: capturedImages.length,
+                    text: ocrTexts.join('\n\n---\n\n'),
+                    createdAt: new Date().toISOString()
+                };
+
+                documents.push(newDoc);
+                const saved = saveDocumentsToStorage();
+
+                if (!saved) {
+                    // Roll back so the in-memory list still matches what's on disk,
+                    // and keep the captured photos so the user doesn't lose their scan.
+                    documents.pop();
+                    isProcessing = false;
+                    renderScanner();
+                    return;
+                }
+
+                capturedImages = [];
+                ocrTexts = [];
+                docName = '';
+                isProcessing = false;
+                alert('Đã lưu tài liệu thành công!');
+                goPage('gallery');
             } catch (e) {
-                alert('Error creating PDF: ' + e.message);
+                console.log('generatePDF error:', e);
+                alert('Có lỗi khi tạo PDF: ' + (e.message || e.name) + '\n\nẢnh đã chụp vẫn còn, bạn có thể thử lưu lại.');
                 isProcessing = false;
                 renderScanner();
             }
@@ -860,6 +896,16 @@
             const doc = documents[i];
             document.getElementById('previewTitle').textContent = doc.name;
             document.getElementById('previewFrame').src = doc.pdfData;
+
+            const ocrBox = document.getElementById('previewOcrBox');
+            const ocrTextEl = document.getElementById('previewOcrText');
+            if (doc.text && doc.text.trim()) {
+                ocrTextEl.textContent = doc.text;
+                ocrBox.style.display = 'block';
+            } else {
+                ocrBox.style.display = 'none';
+            }
+
             document.getElementById('previewModal').classList.add('active');
         };
 
@@ -883,10 +929,18 @@
             goPage('share');
         };
 
-        async function pdfToFile(doc) {
-            const res = await fetch(doc.pdfData);
-            const blob = await res.blob();
-            return new File([blob], `${doc.name}.pdf`, { type: 'application/pdf' });
+        function pdfToFile(doc) {
+            // Synchronous conversion (no fetch/await) so the call chain from
+            // the button tap to navigator.share() stays within the same user
+            // gesture - iOS Safari silently drops share() if too much async
+            // work happens in between and the "user activation" window expires.
+            const parts = doc.pdfData.split(',');
+            const binary = atob(parts[1]);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return new File([bytes], `${doc.name}.pdf`, { type: 'application/pdf' });
         }
 
         window.sendEmail = async (btn) => {
@@ -904,7 +958,7 @@
             if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loading-spinner"></span> Đang chuẩn bị...'; }
 
             try {
-                const file = await pdfToFile(doc);
+                const file = pdfToFile(doc);
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
@@ -946,7 +1000,7 @@
             if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loading-spinner"></span> Đang chuẩn bị...'; }
 
             try {
-                const file = await pdfToFile(doc);
+                const file = pdfToFile(doc);
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
@@ -973,17 +1027,23 @@
         };
 
         window.deleteDoc = (i) => {
-            if (confirm('Delete this document?')) {
+            if (confirm('Xóa tài liệu này?')) {
+                const backup = documents[i];
                 documents.splice(i, 1);
-                localStorage.setItem('documents', JSON.stringify(documents));
+                if (!saveDocumentsToStorage()) {
+                    documents.splice(i, 0, backup);
+                }
                 renderGallery();
             }
         };
 
         window.clearAll = () => {
-            if (confirm(`Delete all ${documents.length} documents?`)) {
+            if (confirm(`Xóa tất cả ${documents.length} tài liệu?`)) {
+                const backup = documents;
                 documents = [];
-                localStorage.setItem('documents', JSON.stringify(documents));
+                if (!saveDocumentsToStorage()) {
+                    documents = backup;
+                }
                 renderSettings();
             }
         };
