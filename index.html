@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Scanner - Quét và Gửi</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #222;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #666;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #0066cc;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0052a3;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: #e8e8e8;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d5d5d5;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        #video-container {
+            width: 100%;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #000;
+            display: none;
+        }
+
+        #video {
+            width: 100%;
+            display: block;
+        }
+
+        #preview-image {
+            width: 100%;
+            border-radius: 6px;
+            display: none;
+            margin-bottom: 12px;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .status {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .status.loading {
+            color: #0066cc;
+            font-weight: 500;
+        }
+
+        .status.success {
+            color: #22863a;
+        }
+
+        .status.error {
+            color: #cb2431;
+        }
+
+        #ocr-result {
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px;
+            min-height: 200px;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+            resize: vertical;
+            width: 100%;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            display: none;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #0066cc;
+            width: 0%;
+            transition: width 0.2s;
+        }
+
+        .email-section {
+            border-top: 1px solid #e0e0e0;
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+
+        .email-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #222;
+        }
+
+        input[type="email"],
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        input[type="email"]:focus,
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .button-row button {
+            flex: 1;
+        }
+
+        @media (max-width: 600px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+        }
+
+        .spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f0f0f0;
+            border-top: 2px solid #0066cc;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📸 OCR Scanner</h1>
+            <p>Quét giấy tờ, CCCD, hóa đơn... Nhận diện chữ và gửi email</p>
+        </div>
+
+        <div class="main-grid">
+            <!-- INPUT SECTION -->
+            <div class="card">
+                <h2>📷 Quét / Upload</h2>
+                
+                <div class="alert alert-info" id="alert-info">
+                    Chọn một trong hai: Quét từ camera hoặc upload ảnh từ file
+                </div>
+
+                <div id="video-container">
+                    <video id="video" autoplay playsinline></video>
+                </div>
+
+                <img id="preview-image" alt="Preview">
+
+                <div class="btn-group">
+                    <button class="btn-primary" id="btn-camera" onclick="startCamera()">Mở Camera</button>
+                    <button class="btn-secondary" id="btn-upload" onclick="document.getElementById('file-input').click()">Upload Ảnh</button>
+                    <button class="btn-secondary" id="btn-capture" onclick="capturePhoto()" style="display:none;">Chụp Ảnh</button>
+                    <button class="btn-secondary" id="btn-close-camera" onclick="closeCamera()" style="display:none;">Đóng Camera</button>
+                </div>
+
+                <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)">
+
+                <div class="status" id="status-scan"></div>
+                <div class="progress-bar" id="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+            </div>
+
+            <!-- RESULT SECTION -->
+            <div class="card">
+                <h2>📄 Kết Quả</h2>
+                
+                <div class="status loading" id="status-ocr" style="display:none;">
+                    <span class="spinner"></span>Đang nhận diện chữ...
+                </div>
+
+                <textarea id="ocr-result" placeholder="Kết quả OCR sẽ hiển thị ở đây..."></textarea>
+
+                <div class="button-row" style="margin-top:12px;">
+                    <button class="btn-secondary" onclick="copyToClipboard()">📋 Copy</button>
+                    <button class="btn-secondary" onclick="clearResult()">🗑️ Xóa</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- EMAIL SECTION -->
+        <div class="card">
+            <h2>✉️ Gửi Email</h2>
+            
+            <div class="alert alert-success" id="alert-success" style="display:none;">
+                ✓ Email đã được gửi thành công!
+            </div>
+
+            <div class="alert alert-error" id="alert-error" style="display:none;">
+                ✗ Lỗi: <span id="error-message"></span>
+            </div>
+
+            <div class="input-group">
+                <label>Email nhận:</label>
+                <input type="email" id="recipient-email" placeholder="ví dụ: company@example.com">
+            </div>
+
+            <div class="input-group">
+                <label>Tiêu đề:</label>
+                <input type="text" id="email-subject" placeholder="ví dụ: OCR - CCCD - Nguyễn Trung Tín">
+            </div>
+
+            <div class="input-group">
+                <label>Nội dung thêm (tùy chọn):</label>
+                <textarea id="email-body" placeholder="Thêm ghi chú hoặc thông tin khác..." style="resize: vertical; min-height: 80px;"></textarea>
+            </div>
+
+            <button class="btn-primary" id="btn-send-email" onclick="sendEmail()" style="width:100%;">Gửi Email</button>
+
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
+                <p style="font-size:12px; color:#666; margin-bottom:8px;">💡 <strong>Ghi chú:</strong></p>
+                <p style="font-size:12px; color:#666; line-height:1.6;">
+                    Nếu không có server backend, bạn có thể copy kết quả OCR và dán vào email manual. 
+                    Cấu hình email server để gửi tự động sẽ yêu cầu backend.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const Tesseract = window.Tesseract;
+        let currentImageData = null;
+        let ocrWorker = null;
+
+        // Initialize Tesseract worker
+        async function initOCRWorker() {
+            if (!ocrWorker) {
+                ocrWorker = await Tesseract.createWorker({
+                    langPath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@4.0.0-alpha.20/tesseract-core.wasm.js',
+                });
+                await ocrWorker.loadLanguage('vie,eng');
+                await ocrWorker.initialize('vie,eng');
+            }
+        }
+
+        // Camera functions
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1440 }
+                    }
+                });
+
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+
+                document.getElementById('video-container').style.display = 'block';
+                document.getElementById('btn-camera').style.display = 'none';
+                document.getElementById('btn-upload').style.display = 'none';
+                document.getElementById('btn-capture').style.display = 'inline-block';
+                document.getElementById('btn-close-camera').style.display = 'inline-block';
+                document.getElementById('preview-image').style.display = 'none';
+
+                updateStatus('scan', 'Camera mở. Định vị tờ giấy rồi nhấn "Chụp Ảnh"', '');
+            } catch (err) {
+                showAlert('error', 'Không thể mở camera: ' + err.message);
+            }
+        }
+
+        function closeCamera() {
+            const video = document.getElementById('video');
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+
+            document.getElementById('video-container').style.display = 'none';
+            document.getElementById('btn-camera').style.display = 'inline-block';
+            document.getElementById('btn-upload').style.display = 'inline-block';
+            document.getElementById('btn-capture').style.display = 'none';
+            document.getElementById('btn-close-camera').style.display = 'none';
+            updateStatus('scan', '', '');
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            currentImageData = canvas.toDataURL('image/jpeg', 0.95);
+
+            const previewImg = document.getElementById('preview-image');
+            previewImg.src = currentImageData;
+            previewImg.style.display = 'block';
+
+            closeCamera();
+            updateStatus('scan', 'Ảnh đã chụp. Bắt đầu nhận diện...', 'loading');
+            performOCR(currentImageData);
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentImageData = e.target.result;
+
+                const previewImg = document.getElementById('preview-image');
+                previewImg.src = currentImageData;
+                previewImg.style.display = 'block';
+
+                updateStatus('scan', 'Ảnh đã upload. Bắt đầu nhận diện...', 'loading');
+                performOCR(currentImageData);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function performOCR(imageData) {
+            try {
+                await initOCRWorker();
+
+                document.getElementById('status-ocr').style.display = 'block';
+                document.getElementById('progress-bar').style.display = 'block';
+
+                const result = await ocrWorker.recognize(imageData);
+
+                document.getElementById('ocr-result').value = result.data.text;
+                updateStatus('scan', '✓ Nhận diện chữ hoàn tất', 'success');
+                updateStatus('ocr', '', '');
+                document.getElementById('progress-bar').style.display = 'none';
+
+                showAlert('success', '✓ Nhận diện chữ thành công!');
+            } catch (err) {
+                updateStatus('scan', '✗ Lỗi: ' + err.message, 'error');
+                showAlert('error', 'Lỗi khi nhận diện: ' + err.message);
+            }
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('ocr-result').value;
+            if (!text) {
+                showAlert('error', 'Không có nội dung để copy');
+                return;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                showAlert('success', '✓ Đã copy vào clipboard');
+            });
+        }
+
+        function clearResult() {
+            document.getElementById('ocr-result').value = '';
+            currentImageData = null;
+            document.getElementById('preview-image').style.display = 'none';
+            updateStatus('scan', '', '');
+            updateStatus('ocr', '', '');
+        }
+
+        async function sendEmail() {
+            const recipientEmail = document.getElementById('recipient-email').value.trim();
+            const subject = document.getElementById('email-subject').value.trim();
+            const ocrText = document.getElementById('ocr-result').value.trim();
+            const additionalBody = document.getElementById('email-body').value.trim();
+
+            if (!recipientEmail) {
+                showAlert('error', 'Vui lòng nhập email nhận');
+                return;
+            }
+
+            if (!ocrText) {
+                showAlert('error', 'Không có nội dung OCR để gửi');
+                return;
+            }
+
+            const emailBody = `${ocrText}\n${additionalBody ? '\n---\n' + additionalBody : ''}`;
+
+            // Method 1: Try to send via backend (if available)
+            try {
+                const response = await fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: recipientEmail,
+                        subject: subject || 'OCR Result',
+                        body: emailBody
+                    })
+                });
+
+                if (response.ok) {
+                    showAlert('success', '✓ Email đã được gửi thành công!');
+                    document.getElementById('recipient-email').value = '';
+                    document.getElementById('email-subject').value = '';
+                    document.getElementById('email-body').value = '';
+                    return;
+                }
+            } catch (err) {
+                // Backend not available, fallback to client-side copy
+            }
+
+            // Method 2: Fallback - Copy to clipboard and open mailto
+            const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject || 'OCR Result')}&body=${encodeURIComponent(emailBody)}`;
+            
+            // Copy to clipboard first
+            navigator.clipboard.writeText(emailBody).then(() => {
+                showAlert('info', '✓ Nội dung đã copy vào clipboard. Mở email client...');
+                
+                // Open default email client after delay
+                setTimeout(() => {
+                    window.location.href = mailtoLink;
+                }, 1000);
+            });
+        }
+
+        function updateStatus(elementId, message, className) {
+            const element = document.getElementById(`status-${elementId}`);
+            if (element) {
+                element.textContent = message;
+                element.className = 'status' + (className ? ` ${className}` : '');
+            }
+        }
+
+        function showAlert(type, message) {
+            const alertSuccess = document.getElementById('alert-success');
+            const alertError = document.getElementById('alert-error');
+            const alertInfo = document.getElementById('alert-info');
+
+            // Hide all alerts
+            alertSuccess.style.display = 'none';
+            alertError.style.display = 'none';
+            alertInfo.style.display = 'none';
+
+            if (type === 'success') {
+                alertSuccess.style.display = 'block';
+                alertSuccess.textContent = message;
+                setTimeout(() => alertSuccess.style.display = 'none', 4000);
+            } else if (type === 'error') {
+                alertError.style.display = 'block';
+                document.getElementById('error-message').textContent = message;
+                setTimeout(() => alertError.style.display = 'none', 4000);
+            } else if (type === 'info') {
+                alertInfo.style.display = 'block';
+                alertInfo.textContent = message;
+                setTimeout(() => alertInfo.style.display = 'none', 4000);
+            }
+        }
+
+        // Load email from localStorage if exists
+        window.addEventListener('load', () => {
+            const savedEmail = localStorage.getItem('ocr-recipient-email');
+            if (savedEmail) {
+                document.getElementById('recipient-email').value = savedEmail;
+            }
+
+            document.getElementById('recipient-email').addEventListener('change', (e) => {
+                localStorage.setItem('ocr-recipient-email', e.target.value);
+            });
+        });
+    </script>
+</body>
+</html>
