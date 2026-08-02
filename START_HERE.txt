@@ -1,0 +1,134 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║                                                                   ║
+║           🚀 OCR SCANNER PRO v2.0 - START HERE 🚀               ║
+║                                                                   ║
+║              Tác giả: NGUYỄN TRUNG TÍN                          ║
+║              Status: ✅ PRODUCTION READY                         ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+📋 QUICK START - 5 PHÚT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CÁCH 1: CHỈ FRONTEND (OFFLINE - NHANH NHẤT)
+
+  1. Mở file: index.html (double-click hoặc kéo vào browser)
+  2. Chụp ảnh → OCR → Copy kết quả
+  3. Gửi email thủ công bằng Gmail/Outlook
+  
+  ✓ Xong! Không cần cài gì.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CÁCH 2: THÊM BACKEND (GỬI EMAIL TỰ ĐỘNG)
+
+  Bước 1: Cài Node.js
+    $ node --version  (kiểm tra)
+  
+  Bước 2: Setup backend
+    $ npm install
+    $ cp .env.example .env
+    # Sửa .env: EMAIL_USER, EMAIL_PASSWORD
+  
+  Bước 3: Test email
+    $ npm run test
+    # Nếu OK → nhận email test
+  
+  Bước 4: Chạy server
+    $ npm start
+    # Truy cập: http://localhost:3000
+  
+  ✓ Xong! Backend chạy local.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CÁCH 3: DEPLOY LÊN CLOUD (CÔNG KHAI)
+
+  📝 Hướng dẫn chi tiết trong DEPLOY.md
+  
+  Nhanh nhất (1 phút):
+    1. Push GitHub
+    2. Vào Vercel.com → "Deploy from GitHub"
+    3. Cấu hình Environment Variables
+    4. ✓ Xong! Link public
+  
+  💰 Miễn phí trên: Vercel, Heroku, Railway, Netlify
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 FILE HƯỚNG DẪN
+
+  • QUICKSTART.md   ← Bắt đầu nhanh (2 phút)
+  • README.md       ← Hướng dẫn chi tiết đầy đủ
+  • DEPLOY.md       ← Hướng dẫn deploy cloud
+  • CHECKLIST.md    ← Kiểm tra trước deploy
+  • .env.example    ← Cấu hình email template
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🛠️ CORE FILES
+
+  • index.html      ← Frontend (32KB, đơn lẻ)
+  • server.js       ← Backend Node.js
+  • package.json    ← NPM dependencies
+  • .env.example    ← Cấu hình template
+  • test.js         ← Test email script
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✨ TÍNH NĂNG
+
+  ✓ Quét camera + Upload ảnh
+  ✓ OCR Tesseract (Tiếng Việt + Anh)
+  ✓ Confidence score + Thống kê
+  ✓ Chỉnh sửa ảnh (độ sáng, tương phản)
+  ✓ Copy kết quả
+  ✓ Gửi email (2 cách: offline + backend)
+  ✓ Responsive (mobile + desktop)
+  ✓ Offline-first (an toàn)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📧 EMAIL SETUP (Nếu dùng backend)
+
+  Gmail (khuyến nghị):
+    1. https://myaccount.google.com/security
+    2. Bật "2-Step Verification"
+    3. https://myaccount.google.com/apppasswords
+    4. Chọn "Mail" → Copy 16 ký tự
+    5. Paste vào .env: EMAIL_PASSWORD=xxxx-xxxx-xxxx-xxxx
+
+  Alternative: Outlook, SendGrid, Custom SMTP
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 DEPLOY PLATFORMS
+
+  • Vercel      → npm install -g vercel && vercel
+  • Heroku      → heroku create && git push heroku main
+  • Railway     → https://railway.app
+  • Netlify     → Drag-drop folder
+  • AWS/GCP     → Docker support
+
+  ✓ Tất cả miễn phí hoặc rất cheap
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❓ QUESTIONS?
+
+  • Chạy lần đầu: QUICKSTART.md
+  • Setup backend: README.md
+  • Deploy cloud: DEPLOY.md
+  • Pre-deploy check: CHECKLIST.md
+  • Email không gửi: test.js + logs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👨‍💻 NGUYỄN TRUNG TÍN
+
+  Sản phẩm: Đơn giản • Chính xác • Ổn định
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+READY TO GO! 🚀
